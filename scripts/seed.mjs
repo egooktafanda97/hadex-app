@@ -6,12 +6,34 @@ import path from "node:path";
 const databasePath = path.resolve(process.cwd(), process.env.DATABASE_URL?.replace(/^file:/, "") || "data/hdex.db");
 const db = new Database(databasePath);
 const now = new Date().toISOString();
-const password = await bcrypt.hash("HDEXdemo123!", 12);
+const demoPassword = "password";
+const password = await bcrypt.hash(demoPassword, 12);
 const id = () => crypto.randomUUID();
 
 const seed = db.transaction(() => {
-  const insertUser = db.prepare(`INSERT OR IGNORE INTO users (id,name,email,phone,password_hash,role,is_active,created_at,updated_at) VALUES (?,?,?,?,?,?,1,?,?)`);
-  for (const [name,email,role] of [["Admin HDEX","admin@hdex.test","admin"],["Operator HDEX","operator@hdex.test","operator"],["Owner HDEX","owner@hdex.test","owner"],["Pelanggan Demo","customer@hdex.test","customer"]]) insertUser.run(id(),name,email,"081234567890",password,role,now,now);
+  const findUser = db.prepare(`SELECT id FROM users WHERE email=?`);
+  const insertUser = db.prepare(
+    `INSERT INTO users (id,name,email,phone,password_hash,role,is_active,created_at,updated_at) VALUES (?,?,?,?,?,?,1,?,?)`,
+  );
+  const updateUser = db.prepare(
+    `UPDATE users SET name=?,phone=?,password_hash=?,role=?,is_active=1,updated_at=? WHERE id=?`,
+  );
+
+  const demoUsers = [
+    ["Admin HDEX", "admin@mail.com", "admin"],
+    ["Super HDEX", "super@mail.com", "owner"],
+    ["Operator HDEX", "operator@mail.com", "operator"],
+    ["Pelanggan Demo", "customer@mail.com", "customer"],
+  ];
+
+  for (const [name, email, role] of demoUsers) {
+    const existing = findUser.get(email);
+    if (existing) {
+      updateUser.run(name, "081234567890", password, role, now, existing.id);
+    } else {
+      insertUser.run(id(), name, email, "081234567890", password, role, now, now);
+    }
+  }
 
   let busId = id();
   db.prepare(`INSERT OR IGNORE INTO buses (id,code,name,plate_number,capacity,is_active,created_at,updated_at) VALUES (?,?,?,?,20,1,?,?)`).run(busId,"HDEX-01","HDEX Executive 01","BM 7010 HX",now,now);
@@ -34,4 +56,4 @@ const seed = db.transaction(() => {
   db.prepare(`INSERT OR IGNORE INTO trip_seats (id,trip_id,bus_seat_id,status) SELECT lower(hex(randomblob(16))), ?, id, 'available' FROM bus_seats WHERE bus_id=?`).run(tripId,busId);
 });
 seed(); db.close();
-console.log("Seed selesai. Password semua akun demo: HDEXdemo123!");
+console.log(`Seed selesai. Password semua akun demo: ${demoPassword}`);

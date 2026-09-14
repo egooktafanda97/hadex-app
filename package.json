@@ -10,6 +10,7 @@
     "db:migrate": "node scripts/migrate.mjs",
     "db:seed": "node scripts/seed.mjs",
     "db:setup": "npm run db:migrate && npm run db:seed",
+    "db:ensure": "node scripts/ensure-db.mjs",
     "tinymce:assets": "node scripts/copy-tinymce-assets.mjs",
     "postinstall": "node scripts/copy-tinymce-assets.mjs"
   },
