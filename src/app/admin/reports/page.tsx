@@ -1,0 +1,14 @@
+import { db } from '@/lib/db';
+import { requireUser } from '@/lib/dal';
+import { formatDateTime } from '@/lib/format';
+import { ReportsView, type BusReportRow, type ScheduleReportRow, type TripReportRow } from '@/components/reports-view';
+
+export const dynamic = 'force-dynamic';
+
+export default async function Page(){
+  await requireUser(['admin']);
+  const schedules=db.prepare(`SELECT t.id,t.trip_code tripCode,t.departure_at departureAt,t.arrival_at arrivalAt,o.city origin,d.city destination,b.code busCode,b.name busName,b.plate_number plateNumber,b.capacity,SUM(CASE WHEN ts.status='booked' THEN 1 ELSE 0 END) bookedSeats,SUM(CASE WHEN ts.status='available' THEN 1 ELSE 0 END) availableSeats,t.fare,t.status FROM trips t JOIN routes r ON r.id=t.route_id JOIN locations o ON o.id=r.origin_id JOIN locations d ON d.id=r.destination_id JOIN buses b ON b.id=t.bus_id LEFT JOIN trip_seats ts ON ts.trip_id=t.id WHERE t.status IN ('scheduled','boarding') GROUP BY t.id ORDER BY t.departure_at ASC`).all() as ScheduleReportRow[];
+  const trips=db.prepare(`SELECT t.id,t.trip_code tripCode,t.departure_at departureAt,t.arrival_at arrivalAt,o.city origin,d.city destination,b.code busCode,b.name busName,b.plate_number plateNumber,b.capacity,t.fare,t.status,COALESCE(bookings.totalBookings,0) totalBookings,COALESCE(bookings.confirmedBookings,0) confirmedBookings,COALESCE(passengers.passengerCount,0) passengerCount,COALESCE(revenue.paidRevenue,0) paidRevenue FROM trips t JOIN routes r ON r.id=t.route_id JOIN locations o ON o.id=r.origin_id JOIN locations d ON d.id=r.destination_id JOIN buses b ON b.id=t.bus_id LEFT JOIN (SELECT trip_id,COUNT(*) totalBookings,SUM(CASE WHEN status='confirmed' THEN 1 ELSE 0 END) confirmedBookings FROM bookings GROUP BY trip_id) bookings ON bookings.trip_id=t.id LEFT JOIN (SELECT bk.trip_id,COUNT(bp.id) passengerCount FROM bookings bk JOIN booking_passengers bp ON bp.booking_id=bk.id WHERE bk.status IN ('confirmed','completed') GROUP BY bk.trip_id) passengers ON passengers.trip_id=t.id LEFT JOIN (SELECT bk.trip_id,SUM(p.amount) paidRevenue FROM bookings bk JOIN payments p ON p.booking_id=bk.id WHERE p.status='paid' GROUP BY bk.trip_id) revenue ON revenue.trip_id=t.id ORDER BY t.departure_at DESC`).all() as TripReportRow[];
+  const buses=db.prepare(`SELECT b.id,b.code,b.name,b.plate_number plateNumber,b.capacity,COUNT(DISTINCT CASE WHEN bs.is_active=1 THEN bs.id END) activeSeats,COUNT(DISTINCT CASE WHEN t.departure_at>datetime('now') AND t.status IN ('scheduled','boarding') THEN t.id END) upcomingTrips,b.updated_at updatedAt FROM buses b LEFT JOIN bus_seats bs ON bs.bus_id=b.id LEFT JOIN trips t ON t.bus_id=b.id WHERE b.is_active=1 GROUP BY b.id ORDER BY b.code ASC`).all() as BusReportRow[];
+  return <ReportsView schedules={schedules} trips={trips} buses={buses} printedAt={formatDateTime(new Date().toISOString())}/>;
+}

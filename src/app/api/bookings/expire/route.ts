@@ -1,0 +1,1 @@
+import { expireBookings } from "@/services/booking.service";export async function POST(request:Request){const token=request.headers.get("authorization");if(!process.env.CRON_SECRET||token!==`Bearer ${process.env.CRON_SECRET}`)return Response.json({error:"Unauthorized"},{status:401});return Response.json({expired:expireBookings()})}

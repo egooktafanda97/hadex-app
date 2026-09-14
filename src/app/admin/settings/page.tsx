@@ -1,0 +1,1 @@
+export default function Page(){return <><h1 className="text-3xl font-black mb-6">Pengaturan</h1><section className="card p-6"><p>Credential iPaymu dikelola melalui environment server dan tidak ditampilkan di UI.</p></section></>}

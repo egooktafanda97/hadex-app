@@ -20,6 +20,13 @@
 # production
 /build
 
+# local database
+/data/*.db
+/data/*.db-*
+
+# generated tickets
+/public/tickets/*
+
 # misc
 .DS_Store
 *.pem

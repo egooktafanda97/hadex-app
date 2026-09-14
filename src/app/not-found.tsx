@@ -1,0 +1,2 @@
+import Link from "next/link";
+export default function NotFound(){return <main className="auth-shell"><div className="card auth-card text-center"><div className="text-6xl font-black text-emerald-900">404</div><h1 className="text-2xl font-black mt-4">Halaman tidak ditemukan</h1><p className="my-5 text-gray-600">Alamat mungkin berubah atau tidak tersedia.</p><Link className="btn btn-primary" href="/">Kembali ke beranda</Link></div></main>}

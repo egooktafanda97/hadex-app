@@ -1,0 +1,1 @@
+import { RoleDashboard } from "@/components/role-dashboard";import { requireUser } from "@/lib/dal";export const dynamic="force-dynamic";export default async function Page(){const u=await requireUser(["owner"]);return <RoleDashboard role="owner" userId={u.id}/>}

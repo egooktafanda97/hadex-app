@@ -1,0 +1,12 @@
+Akun admin demo:
+
+Email: admin@hdex.test
+Password: HDEXdemo123!
+URL: http://localhost:3000/login
+Role super admin tidak tersedia. Role tertinggi operasional: admin.
+
+Akun owner read-only:
+
+Email: owner@hdex.test
+Password: HDEXdemo123!
+Jika login gagal, jalankan npm run db:setup, lalu restart npm run dev.

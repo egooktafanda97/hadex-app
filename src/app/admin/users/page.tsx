@@ -1,0 +1,5 @@
+import { db } from "@/lib/db";
+import { MasterCrud } from "@/components/crud/master-crud";
+import { saveUserAction,toggleActiveAction } from "@/app/actions/master-data";
+export const dynamic="force-dynamic";
+export default function Page(){const rows=db.prepare(`SELECT id,name,email,phone,role,is_active FROM users WHERE role IN ('customer','operator') ORDER BY id DESC`).all() as never[];return <MasterCrud title="Pengguna" rows={rows} path="/admin/users" table="users" model="User" action={saveUserAction} toggleAction={toggleActiveAction} fields={[{name:"name",label:"Nama",required:true},{name:"email",label:"Email",required:true},{name:"phone",label:"Telepon",required:true},{name:"role",label:"Role",type:"select",options:[{label:"Customer",value:"customer"},{label:"Operator",value:"operator"}],required:true},{name:"password",label:"Password",type:"password"},{name:"is_active",label:"Status"}]}/>}
