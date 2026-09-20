@@ -1,0 +1,306 @@
+// HDEX Trans — Database Schema (DBML for dbdiagram.io)
+// Paste ke https://dbdiagram.io/d
+
+Enum user_role {
+  customer
+  operator
+  admin
+  owner
+}
+
+Enum trip_status {
+  scheduled
+  boarding
+  departed
+  arrived
+  cancelled
+}
+
+Enum booking_status {
+  draft
+  pending_payment
+  confirmed
+  cancelled
+  expired
+  completed
+}
+
+Enum trip_seat_status {
+  available
+  held
+  booked
+  blocked
+}
+
+Enum gender {
+  male
+  female
+}
+
+Enum payment_status {
+  unpaid
+  pending
+  awaiting_verification
+  paid
+  failed
+  rejected
+  expired
+  refunded
+}
+
+Enum ticket_status {
+  issued
+  used
+  cancelled
+}
+
+Enum news_status {
+  draft
+  published
+}
+
+Table users {
+  id text [pk]
+  name text [not null]
+  email text [not null, unique]
+  phone text
+  password_hash text [not null]
+  role user_role [not null]
+  is_active integer [not null, default: 1, note: '1=active, 0=inactive']
+  email_verified_at text
+  created_at text [not null]
+  updated_at text [not null]
+}
+
+Table buses {
+  id text [pk]
+  code text [not null, unique]
+  name text [not null]
+  plate_number text [not null, unique]
+  capacity integer [not null, note: 'must be > 0']
+  is_active integer [not null, default: 1]
+  created_at text [not null]
+  updated_at text [not null]
+}
+
+Table bus_seats {
+  id text [pk]
+  bus_id text [not null]
+  seat_number text [not null]
+  seat_row integer [not null]
+  seat_column integer [not null]
+  is_active integer [not null, default: 1]
+
+  Indexes {
+    (bus_id, seat_number) [unique]
+  }
+}
+
+Table locations {
+  id text [pk]
+  name text [not null]
+  city text [not null]
+  address text
+  is_active integer [not null, default: 1]
+  created_at text [not null]
+  updated_at text [not null]
+}
+
+Table routes {
+  id text [pk]
+  origin_id text [not null]
+  destination_id text [not null]
+  duration_minutes integer [not null]
+  distance_km integer
+  is_active integer [not null, default: 1]
+  created_at text [not null]
+  updated_at text [not null]
+
+  Note: 'origin_id <> destination_id'
+}
+
+Table trips {
+  id text [pk]
+  trip_code text [not null, unique]
+  bus_id text [not null]
+  route_id text [not null]
+  departure_at text [not null]
+  arrival_at text [not null]
+  fare integer [not null, note: 'must be >= 0']
+  status trip_status [not null]
+  created_at text [not null]
+  updated_at text [not null]
+
+  Indexes {
+    (departure_at, status) [name: 'idx_trips_departure']
+  }
+}
+
+Table bookings {
+  id text [pk]
+  booking_code text [not null, unique]
+  user_id text [not null]
+  trip_id text [not null]
+  status booking_status [not null]
+  subtotal integer [not null]
+  admin_fee integer [not null, default: 0]
+  discount integer [not null, default: 0]
+  grand_total integer [not null]
+  expires_at text [not null]
+  paid_at text
+  cancelled_at text
+  created_at text [not null]
+  updated_at text [not null]
+
+  Indexes {
+    (user_id, created_at) [name: 'idx_bookings_user']
+  }
+}
+
+Table trip_seats {
+  id text [pk]
+  trip_id text [not null]
+  bus_seat_id text [not null]
+  status trip_seat_status [not null]
+  held_by_booking_id text
+  held_until text
+
+  Indexes {
+    (trip_id, bus_seat_id) [unique]
+    (trip_id, status) [name: 'idx_trip_seats_status']
+  }
+}
+
+Table booking_passengers {
+  id text [pk]
+  booking_id text [not null]
+  name text [not null]
+  gender gender
+  phone text
+  identity_number text
+  seat_id text [not null]
+  created_at text [not null]
+  updated_at text [not null]
+
+  Indexes {
+    (booking_id, seat_id) [unique]
+  }
+}
+
+Table payments {
+  id text [pk]
+  booking_id text [not null, unique]
+  gateway text [not null, default: 'manual']
+  gateway_transaction_id text [unique]
+  gateway_session_id text
+  amount integer [not null, note: 'must be >= 0']
+  status payment_status [not null]
+  payment_method text
+  payment_channel text
+  payment_url text
+  proof_path text
+  proof_uploaded_at text
+  verified_by text
+  verified_at text
+  verification_note text
+  request_payload text
+  response_payload text
+  paid_at text
+  expired_at text
+  created_at text [not null]
+  updated_at text [not null]
+
+  Indexes {
+    (status, created_at) [name: 'idx_payments_status']
+  }
+}
+
+Table tickets {
+  id text [pk]
+  booking_id text [not null]
+  passenger_id text [not null, unique]
+  ticket_code text [not null, unique]
+  qr_token_hash text [not null, unique]
+  status ticket_status [not null]
+  issued_at text [not null]
+  used_at text
+  created_at text [not null]
+  updated_at text [not null]
+}
+
+Table payment_webhooks {
+  id text [pk]
+  gateway text [not null]
+  event_id text [not null]
+  transaction_id text
+  payload text [not null]
+  headers text
+  status text [not null]
+  processed_at text
+  created_at text [not null]
+
+  Indexes {
+    (gateway, event_id) [unique]
+  }
+}
+
+Table audit_logs {
+  id text [pk]
+  user_id text
+  action text [not null]
+  model_type text [not null]
+  model_id text
+  old_values text
+  new_values text
+  ip_address text
+  user_agent text
+  created_at text [not null]
+}
+
+Table news {
+  id text [pk]
+  slug text [not null, unique]
+  title text [not null]
+  excerpt text [not null]
+  content_html text [not null]
+  thumbnail_path text
+  status news_status [not null, default: 'draft']
+  published_at text
+  author_id text [not null]
+  created_at text [not null]
+  updated_at text [not null]
+  deleted_at text
+
+  Indexes {
+    (status, published_at) [name: 'idx_news_public']
+  }
+}
+
+Table settings {
+  key text [pk]
+  value text
+  is_public integer [not null, default: 0]
+  updated_by text
+  updated_at text [not null]
+}
+
+// Relationships
+Ref: bus_seats.bus_id > buses.id
+Ref: routes.origin_id > locations.id
+Ref: routes.destination_id > locations.id
+Ref: trips.bus_id > buses.id
+Ref: trips.route_id > routes.id
+Ref: bookings.user_id > users.id
+Ref: bookings.trip_id > trips.id
+Ref: trip_seats.trip_id > trips.id
+Ref: trip_seats.bus_seat_id > bus_seats.id
+Ref: trip_seats.held_by_booking_id > bookings.id
+Ref: booking_passengers.booking_id > bookings.id
+Ref: booking_passengers.seat_id > trip_seats.id
+Ref: payments.booking_id - bookings.id
+Ref: payments.verified_by > users.id
+Ref: tickets.booking_id > bookings.id
+Ref: tickets.passenger_id - booking_passengers.id
+Ref: audit_logs.user_id > users.id
+Ref: news.author_id > users.id
+Ref: settings.updated_by > users.id

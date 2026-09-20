@@ -58,8 +58,15 @@ export default function Page() {
           label: 'Berangkat',
           type: 'datetime',
           required: true,
+          defaultMinutesFromNow: 0,
         },
-        { name: 'arrivalAt', label: 'Tiba', type: 'datetime', required: true },
+        {
+          name: 'arrivalAt',
+          label: 'Tiba',
+          type: 'datetime',
+          required: true,
+          defaultMinutesFromNow: 210,
+        },
         { name: 'fare', label: 'Harga', type: 'currency', required: true },
         {
           name: 'status',

@@ -20,7 +20,7 @@ export const routeSchema = z.object({
   distanceKm: z.coerce.number().int().nonnegative(),
 }).refine((value) => value.originId !== value.destinationId, "Asal dan tujuan harus berbeda");
 
-export const tripSchema = z.object({
+const tripBaseSchema = z.object({
   tripCode: z.string().trim().min(4, "Kode trip minimal 4 karakter").max(40, "Kode trip maksimal 40 karakter"),
   busId: z.uuid(),
   routeId: z.uuid(),
@@ -28,15 +28,18 @@ export const tripSchema = z.object({
   arrivalAt: z.iso.datetime(),
   fare: z.coerce.number().int().nonnegative(),
   status: z.enum(['scheduled', 'boarding', 'departed', 'arrived', 'cancelled']).default('scheduled'),
-})
-  .refine((value) => new Date(value.departureAt) > new Date(), {
-    path: ['departureAt'],
-    message: "Waktu berangkat harus setelah waktu sekarang",
-  })
-  .refine((value) => new Date(value.arrivalAt) > new Date(value.departureAt), {
-    path: ['arrivalAt'],
-    message: "Waktu tiba harus setelah berangkat",
-  });
+}).refine((value) => new Date(value.arrivalAt) > new Date(value.departureAt), {
+  path: ['arrivalAt'],
+  message: "Waktu tiba harus setelah berangkat",
+});
+
+/** Create: berangkat tidak boleh jauh di masa lalu (toleransi 1 menit karena datetime-local tanpa detik). */
+export const tripCreateSchema = tripBaseSchema.refine(
+  (value) => new Date(value.departureAt).getTime() >= Date.now() - 60_000,
+  { path: ['departureAt'], message: "Waktu berangkat harus setelah waktu sekarang" },
+);
+export const tripUpdateSchema = tripBaseSchema;
+export const tripSchema = tripCreateSchema;
 
 export const userAdminSchema = z.object({
   name: z.string().trim().min(2).max(80),
